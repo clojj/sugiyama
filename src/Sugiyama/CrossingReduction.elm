@@ -8,7 +8,6 @@ import Sugiyama.Domain exposing (..)
 optimizeCrossing : LayeredGraph a -> LayeredGraph a
 optimizeCrossing input =
     let
-
         before =
             numberOfCrossings input
 
@@ -29,9 +28,10 @@ findBestLayers input =
     let
         edges =
             input.edges
+
         invertedEdges =
             edges
-            |> List.map (\(x,y) -> (y,x))
+                |> List.map (\( x, y ) -> ( y, x ))
 
         layers =
             input.layers
@@ -40,11 +40,10 @@ findBestLayers input =
             List.foldl (handleLayer edges) [] layers
 
         resultLayersToRight =
-          List.foldr (handleLayer invertedEdges) [] resultLayersToLeft
-          |> List.reverse
-
+            List.foldr (handleLayer invertedEdges) [] resultLayersToLeft
+                |> List.reverse
     in
-        {input | layers = resultLayersToRight}
+        { input | layers = resultLayersToRight }
 
 
 handleLayer : List ( Node a, Node a ) -> List (Node a) -> List (List (Node a)) -> List (List (Node a))
@@ -71,13 +70,12 @@ numberOfCrossings input =
 -- Per 2 layers
 
 
-reduceTo : ( List a, List b, List ( a, b ) ) -> List b
+reduceTo : ( List (Node a), List (Node b), List ( Node a, Node b ) ) -> List (Node b)
 reduceTo ( aNodes, bNodes, edges ) =
     let
-
         bNodesList =
             List.permutations bNodes
-            |> Debug.log "Reduce to!"
+                |> Debug.log "Reduce to!"
     in
         bNodesList
             |> List.map (\n -> ( computeCrossings aNodes n edges, n ))
@@ -86,7 +84,7 @@ reduceTo ( aNodes, bNodes, edges ) =
             |> Maybe.withDefault bNodes
 
 
-computeCrossings : List a -> List b -> List ( a, b ) -> Int
+computeCrossings : List (Node a) -> List (Node b) -> List ( Node a, Node b ) -> Int
 computeCrossings aNodes bNodes links =
     let
         bPairs =
@@ -97,7 +95,7 @@ computeCrossings aNodes bNodes links =
             |> List.sum
 
 
-crossingsForItems : List a -> List ( a, b ) -> b -> b -> Int
+crossingsForItems : List (Node a) -> List ( Node a, Node b ) -> Node b -> Node b -> Int
 crossingsForItems aNodes links left right =
     let
         rightSources =
@@ -111,7 +109,7 @@ crossingsForItems aNodes links left right =
             |> List.sum
 
 
-getSourceIndexes : List a -> List ( a, b ) -> b -> List Int
+getSourceIndexes : List (Node a) -> List ( Node a, Node b ) -> Node b -> List Int
 getSourceIndexes aNodes links target =
     links
         |> List.filter (snd >> (==) target)
@@ -119,7 +117,7 @@ getSourceIndexes aNodes links target =
         |> List.filterMap (flip List.elemIndex aNodes)
 
 
-orderedPairs : List b -> List ( b, b )
+orderedPairs : List (Node b) -> List ( Node b, Node b )
 orderedPairs input =
     case input of
         x :: rest ->
