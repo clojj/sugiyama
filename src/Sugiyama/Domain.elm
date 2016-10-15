@@ -6,9 +6,10 @@ type alias Graph a =
     , edges : List (Edge a)
     }
 
+type alias Layer a = List (Node a)
 
 type alias LayeredGraph a =
-    { layers : List (List (Node a))
+    { layers : List (Layer a)
     , edges : List (Edge a)
     }
 

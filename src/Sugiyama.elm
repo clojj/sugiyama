@@ -40,11 +40,11 @@ sugiyama vertices edges =
       else
         layered
           |> Dummies.addDummyVertices
-          -- |> Debug.log "Dummies"
+        --   |> Debug.log "Dummies"
           |> CrossingReduction.optimizeCrossing
-          -- |> Debug.log "Optimized"
+        --   |> Debug.log "Optimized"
           |> Rendering.asRenderedGraph
-          -- |> Debug.log "As rendered graph"
+        --   |> Debug.log "As rendered graph"
           |> Result.Ok
 
 
