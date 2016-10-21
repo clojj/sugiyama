@@ -1,8 +1,8 @@
-module Sugiyama exposing (sugiyama)
+module Sugiyama exposing (sugiyama,asGraph,layeredGraph)
 
 import Dict exposing (Dict)
 import List.Extra as List
-import Sugiyama.CrossingReduction as CrossingReduction
+import Sugiyama.Crossing.LayeredReduction as LayeredReduction
 import Sugiyama.Domain exposing (..)
 import Sugiyama.Rendering as Rendering
 import Sugiyama.Dummies as Dummies
@@ -41,7 +41,7 @@ sugiyama vertices edges =
         layered
           |> Dummies.addDummyVertices
         --   |> Debug.log "Dummies"
-          |> CrossingReduction.optimizeCrossing
+          |> LayeredReduction.optimizeCrossing
         --   |> Debug.log "Optimized"
           |> Rendering.asRenderedGraph
         --   |> Debug.log "As rendered graph"

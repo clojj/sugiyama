@@ -2,19 +2,26 @@ module Tests exposing (..)
 
 import Test exposing (..)
 import Expect
-import String
-import CrossingComputation exposing (orderedPairs)
+import Sugiyama
+import DemoGraphs
+import Sugiyama.Crossing.LayeredReduction as LayeredReduction
+import Sugiyama.Crossing.Reduction as Reduction
+import Sugiyama.Crossing.Computation as Computation
 
 all : Test
 all =
     describe "A Test Suite"
-        [ test "Addition" <|
-            \() ->
-                Expect.equal (3 + 7) 10
-        , test "String.left" <|
-            \() ->
-                Expect.equal "a" (String.left 1 "abcdefg")
-        , test "This test should fail" <|
-            \() ->
-                Expect.fail "failed as expected!"
+        [ graph4ShouldHaveNoCrossings
         ]
+
+graph4ShouldHaveNoCrossings : Test
+graph4ShouldHaveNoCrossings =
+    test "Graph 4 should have no crossings" <|
+        \ () ->
+            --TODO With Random edges
+            DemoGraphs.graph4
+             |> uncurry Sugiyama.asGraph
+             |> Sugiyama.layeredGraph
+             |> Reduction.optimizeCrossing
+             |> Computation.crossingsForLayeredGraph
+             |> flip Expect.equal 0
