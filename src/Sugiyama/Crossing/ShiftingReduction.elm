@@ -3,15 +3,17 @@ module Sugiyama.Crossing.ShiftingReduction exposing (..)
 import Sugiyama.Crossing.Computation as Computation
 
 import Sugiyama.Domain exposing (LayeredGraph, Node, Layer)
-import Dict exposing (Dict)
+import Sugiyama.Cache as Cache exposing (Cache)
 import List.Extra as List
-optimizeCrossing : LayeredGraph a -> LayeredGraph a
-optimizeCrossing input =
+import Dict
+
+optimizeCrossing : (LayeredGraph a, Cache a) -> (LayeredGraph a, Cache a)
+optimizeCrossing (input, cache) =
     let
         currentCrossings = Computation.crossingsForLayeredGraph input
     in
         if currentCrossings == 0 then
-            input
+            (input, cache)
         else
             let
                 outgoingForId n =
@@ -25,14 +27,11 @@ optimizeCrossing input =
                     |> List.filter (snd >> List.length >> (>=) 1)
                     |> Dict.fromList
 
-                pathsToHandle = createPaths idIncomingDict |> List.sortBy List.length
-
-                pathVariationList = List.map (variationsForPath input) pathsToHandle
-
-
+                pathVariationList = List.map (variationsForPath input) (Cache.pathsToHandle cache)
             in
-                improvementForPathVariationList currentCrossings pathVariationList
-                |> Maybe.withDefault input
+                (improvementForPathVariationList currentCrossings pathVariationList
+                    |> Maybe.withDefault input
+                , cache)
 
 improvementForPathVariationList : Int -> List (List (LayeredGraph a)) -> Maybe (LayeredGraph a)
 improvementForPathVariationList n graphsList =
@@ -57,8 +56,25 @@ improvementForPathVariations n graphs =
 
 variationsForPath : LayeredGraph a -> List String -> List (LayeredGraph a)
 variationsForPath input ids =
-    --- TODO Also do left
-    shiftRightVariations input ids
+    List.interweave
+        (shiftRightVariations input ids)
+        (shiftLeftVariations input ids)
+
+shiftLeftVariations : LayeredGraph a -> List String -> List (LayeredGraph a)
+shiftLeftVariations input ids =
+    let
+        firstIds = input.layers |> List.filterMap List.head |> List.map .id
+
+        allFirst = List.all (flip List.member firstIds) ids
+    in
+        if allFirst then
+            []
+        else
+            let
+                newInput = { input | layers = List.map (pushIdLeftInLayer ids) input.layers }
+            in
+                newInput :: shiftLeftVariations newInput ids
+
 
 shiftRightVariations : LayeredGraph a -> List String -> List (LayeredGraph a)
 shiftRightVariations input ids =
@@ -75,6 +91,20 @@ shiftRightVariations input ids =
             in
                 newInput :: shiftRightVariations newInput ids
 
+pushIdLeftInLayer : List String -> Layer a -> Layer a
+pushIdLeftInLayer ids layer =
+    case layer of
+        [] ->
+            []
+        [x] ->
+            [x]
+
+        x :: y :: xs ->
+            if List.member y.id ids then
+                y :: x :: xs
+            else
+                x :: pushIdLeftInLayer ids (y :: xs)
+
 pushIdRightInLayer : List String -> Layer a -> Layer a
 pushIdRightInLayer ids layer =
     case layer of
@@ -88,27 +118,3 @@ pushIdRightInLayer ids layer =
                 y :: x :: xs
             else
                 x :: pushIdRightInLayer ids (y :: xs)
-
-
-createPaths : Dict String (List (String, String)) -> List (List String)
-createPaths input =
-    let
-        keys = Dict.keys input
-
-        pathForKey key =
-            Dict.get key input
-            |> Maybe.map (\list ->
-                case list of
-                    [] -> []
-                    [(x,y)] -> (x,y) :: pathForKey y
-                    _ -> [])
-            |> Maybe.withDefault []
-
-    in
-        -- TODO: Do something about subpath of
-
-            List.map pathForKey keys
-            |> List.filter (List.length >> (<=) 2)
-            |> List.filterMap (\p ->
-                Maybe.map (\h -> (fst h) :: (List.map snd p) ) (List.head p))
-            |> Debug.log "Paths"

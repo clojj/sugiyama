@@ -9,50 +9,32 @@ import Sugiyama.Crossing.Computation as Computation
 import Dict exposing (Dict)
 
 
-type alias LayerPermutationDict a =
-    Dict Int (LayerPermutation a)
+optimizeCrossing : (LayeredGraph a, Cache a) -> (LayeredGraph a, Cache a)
+optimizeCrossing (input, cache) =
+    optimizeCrossing' cache input
 
 
-type alias LayerPermutation a =
-    List (Layer a)
-
-
-optimizeCrossing : LayeredGraph a -> LayeredGraph a
-optimizeCrossing input =
-    optimizeCrossing' C.newCache (layerPermutationsForGraph input) input
-
-
-optimizeCrossing' : Cache a -> LayerPermutationDict a -> LayeredGraph a -> LayeredGraph a
-optimizeCrossing' cache permutations input =
+optimizeCrossing' : Cache a -> LayeredGraph a -> (LayeredGraph a, Cache a)
+optimizeCrossing' cache input =
     let
         before =
             Computation.crossingsForLayeredGraph input
 
         ( optimized, newCache ) =
-            findBestLayers cache permutations input
+            findBestLayers cache input
 
         after =
             Computation.crossingsForLayeredGraph optimized
     in
         if after == 0 then
-            optimized
+            (optimized, newCache)
         else if after < before then
-            optimizeCrossing' newCache permutations optimized
+            optimizeCrossing' newCache optimized
         else
-            input
+            (input, newCache)
 
-
-layerPermutationsForGraph : LayeredGraph a -> LayerPermutationDict a
-layerPermutationsForGraph input =
-    input
-        |> .layers
-        |> List.map List.permutations
-        |> List.indexedMap (,)
-        |> Dict.fromList
-
-
-findBestLayers : Cache a -> LayerPermutationDict a -> LayeredGraph a -> ( LayeredGraph a, Cache a )
-findBestLayers cache permutations input =
+findBestLayers : Cache a -> LayeredGraph a -> ( LayeredGraph a, Cache a )
+findBestLayers cache input =
     let
         edges =
             input.edges
@@ -66,10 +48,10 @@ findBestLayers cache permutations input =
                 |> List.indexedMap (,)
 
         ( resultLayersToLeft, newCache ) =
-            List.foldl (handleLayer edges permutations) ( [], cache ) layers
+            List.foldl (handleLayer edges) ( [], cache ) layers
 
         ( resultLayersToRight, newCache_ ) =
-            List.foldr (handleLayer invertedEdges permutations) ( [], newCache ) resultLayersToLeft
+            List.foldr (handleLayer invertedEdges) ( [], newCache ) resultLayersToLeft
 
         newLayers =
             resultLayersToRight |> List.map snd |> List.reverse
@@ -77,8 +59,8 @@ findBestLayers cache permutations input =
         ( { input | layers = newLayers }, newCache_ )
 
 
-handleLayer : List ( Node a, Node a ) -> LayerPermutationDict a -> ( Int, Layer a ) -> ( List ( Int, Layer a ), Cache a ) -> ( List ( Int, Layer a ), Cache a )
-handleLayer edges permutationsDict ( layerId, next ) ( result, cache ) =
+handleLayer : List ( Node a, Node a ) -> ( Int, Layer a ) -> ( List ( Int, Layer a ), Cache a ) -> ( List ( Int, Layer a ), Cache a )
+handleLayer edges ( layerId, next ) ( result, cache ) =
     case List.last result of
         Nothing ->
             ( [ ( layerId, next ) ], cache )
@@ -93,7 +75,7 @@ handleLayer edges permutationsDict ( layerId, next ) ( result, cache ) =
                 Nothing ->
                     let
                         computedLayer =
-                            reduceTo permutationsDict ( last, ( layerId, next ), edges )
+                            reduceTo cache ( last, ( layerId, next ), edges )
 
                         newCache =
                             C.addToCache last next computedLayer cache
@@ -103,12 +85,16 @@ handleLayer edges permutationsDict ( layerId, next ) ( result, cache ) =
                         )
 
 
-reduceTo : LayerPermutationDict a -> ( Layer a, ( Int, Layer a ), List ( Node a, Node a ) ) -> Layer a
-reduceTo permutations ( aNodes, ( layerId, bNodes ), edges ) =
-    permutations
-        |> Dict.get layerId
-        |> Maybe.map (\permutation -> findOptimalPermutation permutation aNodes bNodes edges)
-        |> Maybe.withDefault bNodes
+reduceTo : Cache a -> ( Layer a, ( Int, Layer a ), List ( Node a, Node a ) ) -> Layer a
+reduceTo cache ( aNodes, ( layerId, bNodes ), edges ) =
+    if Computation.computeCrossings aNodes bNodes edges == 0 then
+        bNodes
+    else
+        cache
+            |> C.cachedPermutations
+            |> Dict.get layerId
+            |> Maybe.map (\permutation -> findOptimalPermutation permutation aNodes bNodes edges)
+            |> Maybe.withDefault bNodes
 
 
 findOptimalPermutation : LayerPermutation a -> Layer a -> Layer a -> List ( Node a, Node a ) -> Layer a
@@ -125,16 +111,10 @@ findOptimalPermutation permutations aNodes bNodes edges =
                 |> List.filterMap (flip Dict.get bNodePairCrossings)
                 |> List.sum
 
-        bNodesCrossing =
-            bNodes |> orderedPairs |> crossingsForPairs
-
     in
-        if bNodesCrossing == 0 then
-            bNodes
-        else
-            permutations
-                |> List.map (\x -> ( x |> orderedPairs |> crossingsForPairs, x ))
-                |> List.sortBy fst
-                |> List.head
-                |> Maybe.map snd
-                |> Maybe.withDefault bNodes
+        permutations
+            |> List.map (\x -> ( x |> orderedPairs |> crossingsForPairs, x ))
+            |> List.sortBy fst
+            |> List.head
+            |> Maybe.map snd
+            |> Maybe.withDefault bNodes

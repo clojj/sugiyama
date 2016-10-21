@@ -1,5 +1,6 @@
 module Sugiyama.Domain exposing (..)
 
+import Dict exposing (Dict)
 
 type alias Graph a =
     { vertices : List (Node a)
@@ -7,6 +8,15 @@ type alias Graph a =
     }
 
 type alias Layer a = List (Node a)
+
+
+type alias LayerPermutationDict a =
+    Dict Int (LayerPermutation a)
+
+
+type alias LayerPermutation a =
+    List (Layer a)
+
 
 type alias LayeredGraph a =
     { layers : List (Layer a)
