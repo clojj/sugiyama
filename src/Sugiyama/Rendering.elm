@@ -1,55 +1,39 @@
 module Sugiyama.Rendering exposing (..)
 
 import Sugiyama.Domain exposing (..)
+import Sugiyama.Utils exposing (isDummy)
+
 import List
 import List.Extra as List
 import Dict exposing (Dict)
 
 
-type alias RenderGroup a =
-    { min : Float, max : Float, items : List (Node a) }
-
-
-type alias RenderableGraph a =
-    { width : Int
-    , height : Int
-    , vertices :
-        List
-            { value : a
-            , x : Float
-            , y : Float
-            }
-    , edges :
-        List (List ( Float, Float ))
-    }
-
-
 asRenderedGraph : LayeredGraph a -> RenderableGraph a
 asRenderedGraph input =
     let
+        height : Int
         height =
             List.length input.layers
 
+        nodeLayerIndex : Dict Node Int
         nodeLayerIndex =
             input.layers
-                |> List.indexedMap (\index layer -> (List.map (\node -> ( node.id, index )) layer))
+                |> List.indexedMap (\index layer -> (List.map (\node -> ( node, index )) layer))
                 |> List.concat
                 |> Dict.fromList
 
+        nodeIdToY : String -> Float
         nodeIdToY nodeId =
             nodeLayerIndex
                 |> Dict.get nodeId
                 |> Maybe.map (\index -> (1.0 / toFloat (height - 1)) * toFloat index)
                 |> Maybe.withDefault 0.0
 
+        allNodes : List Node
         allNodes =
             List.concat input.layers
 
-        nodeIndex =
-            allNodes
-                |> List.map (\n -> ( n.id, n ))
-                |> Dict.fromList
-
+        dummyGroups : List (List Node)
         dummyGroups =
             List.filter isToDummyEdge input.edges
                 |> List.map (asDummyGroup input.edges)
@@ -65,21 +49,16 @@ asRenderedGraph input =
         positions =
             newRenderGroups
                 |> List.concatMap (\renderGroup -> List.indexedMap (\index node -> ( node, positionForIndex renderGroup index )) renderGroup.items)
-                |> List.foldl (\( node, offset ) -> Dict.insert node.id ( node, offset )) nodePositions
+                |> List.foldl (\( node, offset ) -> Dict.insert node ( node, offset )) nodePositions
                 |> Dict.toList
                 |> List.map snd
-                |> List.map (\( node, x ) -> ( node, x, nodeIdToY node.id ))
+                |> List.map (\( node, x ) -> ( node, x, nodeIdToY node ))
 
         nodes =
             positions
-                |> List.filterMap
+                |> List.map
                     (\( node, x, y ) ->
-                        case node.value of
-                            Val n ->
-                                Just { value = n, x = x, y = y }
-
-                            Dummy ->
-                                Nothing
+                                { key = node, x = x, y = y }
                     )
 
         normalEdges =
@@ -101,10 +80,11 @@ asRenderedGraph input =
         , height = height
         , vertices = nodes
         , edges = edges
+        , mapping =  input.mapping
         }
 
 
-edgePathToPositionPath : List ( Node a, Float, Float ) -> List (Node a) -> List ( Float, Float )
+edgePathToPositionPath : List ( Node, Float, Float ) -> List Node -> List ( Float, Float )
 edgePathToPositionPath positions input =
     input
         |> List.filterMap
@@ -115,7 +95,7 @@ edgePathToPositionPath positions input =
             )
 
 
-handleDummyGroup : List (Node a) -> ( Dict String ( Node a, Float ), List (RenderGroup a) ) -> ( Dict String ( Node a, Float ), List (RenderGroup a) )
+handleDummyGroup : List Node -> ( Dict String ( Node, Float ), List RenderGroup ) -> ( Dict String ( Node, Float ), List RenderGroup )
 handleDummyGroup dummyGroup ( answer, renderGroups ) =
     let
         linked =
@@ -132,7 +112,7 @@ handleDummyGroup dummyGroup ( answer, renderGroups ) =
                 / 2.0
 
         answer' =
-            List.foldl (\node -> Dict.insert node.id ( node, splitAt )) answer dummyGroup
+            List.foldl (\node -> Dict.insert node ( node, splitAt )) answer dummyGroup
 
         fixedRenderGroups =
             fixRenderGroups dummyGroup splitAt renderGroups linked
@@ -140,7 +120,7 @@ handleDummyGroup dummyGroup ( answer, renderGroups ) =
         ( answer', fixedRenderGroups )
 
 
-fixRenderGroups : List (Node a) -> Float -> List (RenderGroup a) -> List ( Node a, RenderGroup a ) -> List (RenderGroup a)
+fixRenderGroups : List Node -> Float -> List RenderGroup -> List ( Node, RenderGroup ) -> List RenderGroup
 fixRenderGroups nodes splitAt renderGroups linked =
     let
         targetRenderGroups =
@@ -155,7 +135,7 @@ fixRenderGroups nodes splitAt renderGroups linked =
         untouchedGroups ++ newTargetRenderGroups
 
 
-fixRenderGroup : Float -> ( Node a, RenderGroup a ) -> List (RenderGroup a)
+fixRenderGroup : Float -> ( Node , RenderGroup ) -> List RenderGroup
 fixRenderGroup splitAt ( node, renderGroup ) =
     case List.elemIndex node renderGroup.items of
         Just index ->
@@ -175,7 +155,7 @@ fixRenderGroup splitAt ( node, renderGroup ) =
                 [ renderGroup ]
 
 
-linkNodesToRenderGroups : List (Node a) -> List (RenderGroup a) -> List ( Node a, RenderGroup a )
+linkNodesToRenderGroups : List Node -> List RenderGroup -> List ( Node , RenderGroup )
 linkNodesToRenderGroups nodes renderGroups =
     List.filterMap
         (\x ->
@@ -186,7 +166,7 @@ linkNodesToRenderGroups nodes renderGroups =
         nodes
 
 
-getRightOffsetData : List (RenderGroup a) -> List (Node a) -> List ( Node a, RenderGroup a ) -> ( Float, Int )
+getRightOffsetData : List RenderGroup -> List Node -> List ( Node , RenderGroup ) -> ( Float, Int )
 getRightOffsetData renderGroups dummies linked =
     let
         positions =
@@ -214,7 +194,7 @@ getRightOffsetData renderGroups dummies linked =
         ( minOffset, maxLeft )
 
 
-getLeftOffsetData : List (RenderGroup a) -> List (Node a) -> List ( Node a, RenderGroup a ) -> ( Float, Int )
+getLeftOffsetData : List RenderGroup -> List Node -> List ( Node , RenderGroup ) -> ( Float, Int )
 getLeftOffsetData renderGroups dummies linked =
     let
         positions =
@@ -242,7 +222,7 @@ getLeftOffsetData renderGroups dummies linked =
         ( minOffset, maxLeft )
 
 
-positionForIndex : RenderGroup a -> Int -> Float
+positionForIndex : RenderGroup -> Int -> Float
 positionForIndex renderGroup index =
     let
         span =
@@ -260,7 +240,7 @@ positionForIndex renderGroup index =
             (span / divider * parts) + renderGroup.min
 
 
-asRenderGroups : LayeredGraph a -> List (RenderGroup a)
+asRenderGroups : LayeredGraph a -> List RenderGroup
 asRenderGroups input =
     let
         ( x, y ) =
@@ -288,7 +268,7 @@ baseValues input =
                 ( 0.0 - step, 1.0 + step )
 
 
-edgePath : List (Edge a) -> Edge a -> List (Node a)
+edgePath : List Edge -> Edge -> List Node
 edgePath edges ( from, to ) =
     if isDummy to then
         let
@@ -304,7 +284,7 @@ edgePath edges ( from, to ) =
         [ from, to ]
 
 
-asDummyGroup : List (Edge a) -> Edge a -> List (Node a)
+asDummyGroup : List Edge -> Edge -> List Node
 asDummyGroup edges ( _, to ) =
     if isDummy to then
         let
@@ -320,11 +300,6 @@ asDummyGroup edges ( _, to ) =
         []
 
 
-isToDummyEdge : Edge a -> Bool
+isToDummyEdge : Edge -> Bool
 isToDummyEdge ( from, to ) =
     not (isDummy from) && isDummy to
-
-
-isDummy : Node a -> Bool
-isDummy node =
-    node.value == Dummy

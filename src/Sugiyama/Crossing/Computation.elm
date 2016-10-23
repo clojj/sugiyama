@@ -16,16 +16,16 @@ crossingsForLayeredGraph input =
             |> List.sum
 
 
-computeCrossingsPairs : Layer a -> Layer b -> List ( Node a, Node b ) -> Dict ( String, String ) Int
+computeCrossingsPairs : Layer -> Layer -> List ( Node, Node ) -> Dict ( String, String ) Int
 computeCrossingsPairs inLayer outLayer edges =
     outLayer
         |> List.concatMap (\x -> outLayer `List.andThen` (\y -> [ ( x, y ) ]))
-        |> List.filter (\( x, y ) -> x.id /= y.id)
-        |> List.map (\( x, y ) -> ( ( x.id, y.id ), crossingsForItems inLayer edges x y ))
+        |> List.filter (uncurry (/=))
+        |> List.map (\( x, y ) -> ( ( x, y ), crossingsForItems inLayer edges x y ))
         |> Dict.fromList
 
 
-computeCrossings : Layer a -> Layer b -> List ( Node a, Node b ) -> Int
+computeCrossings : Layer -> Layer -> List ( Node, Node ) -> Int
 computeCrossings aNodes bNodes links =
     let
         bPairs =
@@ -36,7 +36,7 @@ computeCrossings aNodes bNodes links =
             |> List.sum
 
 
-crossingsForItems : Layer a -> List ( Node a, Node b ) -> Node b -> Node b -> Int
+crossingsForItems : Layer -> List ( Node, Node ) -> Node -> Node -> Int
 crossingsForItems aNodes links left right =
     let
         rightSources =
@@ -50,7 +50,7 @@ crossingsForItems aNodes links left right =
             |> List.sum
 
 
-getSourceIndexes : Layer a -> List ( Node a, Node b ) -> Node b -> List Int
+getSourceIndexes : Layer -> List ( Node, Node ) -> Node -> List Int
 getSourceIndexes aNodes links target =
     links
         |> List.filter (snd >> (==) target)

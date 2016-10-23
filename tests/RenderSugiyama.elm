@@ -6,10 +6,11 @@ import Svg
 import Svg.Attributes exposing (cx, cy, r)
 import String
 import DemoGraphs
+import Dict
 
 height : Float
 height =
-    1200.0
+    600.0
 
 
 width : Float
@@ -31,12 +32,12 @@ main : Html.Html a
 main =
     let
         ( nodes, edges ) =
-            DemoGraphs.graph2
+            DemoGraphs.graph6
 
-        result =
+        optimized =
             Sugiyama.sugiyama nodes edges
     in
-        case result of
+        case optimized of
             Err err ->
                 Html.text err
 
@@ -44,7 +45,13 @@ main =
                 let
                     circles =
                         result.vertices
-                            |> List.map (\n -> asCircle (n.x) n.y n.value)
+                            |> List.filterMap (\n ->
+                                case Dict.get n.key result.mapping of
+                                    Just v ->
+                                        Just <| asCircle (n.x) n.y v
+                                    Nothing ->
+                                        Nothing
+                            )
                             |> List.concat
 
                     lines =
@@ -161,7 +168,7 @@ toRealCoordinate ( x, y ) =
     ( asX x, asY y )
 
 
-asCircle : Float -> Float -> Int -> List (Svg.Svg msg)
+asCircle : Float -> Float -> a -> List (Svg.Svg msg)
 asCircle x y n =
     [ Svg.circle
         [ cx <| toString (asX x)

@@ -59,7 +59,7 @@ findBestLayers cache input =
         ( { input | layers = newLayers }, newCache_ )
 
 
-handleLayer : List ( Node a, Node a ) -> ( Int, Layer a ) -> ( List ( Int, Layer a ), Cache a ) -> ( List ( Int, Layer a ), Cache a )
+handleLayer : List ( Node, Node ) -> ( Int, Layer ) -> ( List ( Int, Layer ), Cache a ) -> ( List ( Int, Layer ), Cache a )
 handleLayer edges ( layerId, next ) ( result, cache ) =
     case List.last result of
         Nothing ->
@@ -85,7 +85,7 @@ handleLayer edges ( layerId, next ) ( result, cache ) =
                         )
 
 
-reduceTo : Cache a -> ( Layer a, ( Int, Layer a ), List ( Node a, Node a ) ) -> Layer a
+reduceTo : Cache a -> ( Layer, ( Int, Layer ), List ( Node, Node ) ) -> Layer
 reduceTo cache ( aNodes, ( layerId, bNodes ), edges ) =
     if Computation.computeCrossings aNodes bNodes edges == 0 then
         bNodes
@@ -97,17 +97,16 @@ reduceTo cache ( aNodes, ( layerId, bNodes ), edges ) =
             |> Maybe.withDefault bNodes
 
 
-findOptimalPermutation : LayerPermutation a -> Layer a -> Layer a -> List ( Node a, Node a ) -> Layer a
+findOptimalPermutation : LayerPermutation -> Layer -> Layer -> List ( Node, Node ) -> Layer
 findOptimalPermutation permutations aNodes bNodes edges =
     let
         bNodePairCrossings : Dict ( String, String ) Int
         bNodePairCrossings =
             Computation.computeCrossingsPairs aNodes bNodes edges
 
-        crossingsForPairs : List ( Node a, Node a ) -> Int
+        crossingsForPairs : List ( Node, Node ) -> Int
         crossingsForPairs a =
             a
-                |> List.map (\( s, t ) -> ( s.id, t.id ))
                 |> List.filterMap (flip Dict.get bNodePairCrossings)
                 |> List.sum
 

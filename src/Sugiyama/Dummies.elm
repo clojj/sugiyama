@@ -3,13 +3,13 @@ module Sugiyama.Dummies exposing (addDummyVertices)
 import Sugiyama.Domain exposing (..)
 import List.Extra as List
 import Dict exposing (Dict)
-
+import String
 
 addDummyVertices : LayeredGraph a -> LayeredGraph a
 addDummyVertices input =
     let
         indexedLayers =
-            indexLayers .id input.layers
+            indexLayers input.layers
 
         expandedEdges =
             List.map (handleEdge indexedLayers) input.edges
@@ -25,18 +25,19 @@ addDummyVertices input =
     in
         { layers = newLayers
         , edges = newEdges
+        , mapping = input.mapping
         }
 
 
-handleEdge : Dict String Int -> ( Node a, Node a ) -> ( List (LayerNode a), List (Edge a) )
+handleEdge : Dict String Int -> ( Node, Node ) -> ( List LayerNode, List Edge )
 handleEdge nodeLayerIndex ( from, to ) =
     Maybe.map2 (\fIndex tIndex -> expandOverLayers ( fIndex, from ) ( tIndex, to ))
-        (Dict.get from.id nodeLayerIndex)
-        (Dict.get to.id nodeLayerIndex)
+        (Dict.get from nodeLayerIndex)
+        (Dict.get to nodeLayerIndex)
         |> Maybe.withDefault ( [], [] )
 
 
-expandOverLayers : LayerNode a -> LayerNode a -> ( List (LayerNode a), List (Edge a) )
+expandOverLayers : LayerNode -> LayerNode -> ( List LayerNode, List Edge )
 expandOverLayers (( fIndex, from ) as fromNode) (( tIndex, to ) as toNode) =
     if fIndex >= tIndex - 1 then
         ( [ fromNode, toNode ], [ ( from, to ) ] )
@@ -46,18 +47,15 @@ expandOverLayers (( fIndex, from ) as fromNode) (( tIndex, to ) as toNode) =
                 fIndex + 1
 
             nextId =
-                case from.value of
-                    Dummy ->
-                        from.id ++ "x"
-
-                    Val _ ->
-                        from.id ++ "_" ++ to.id ++ "_x"
+                case String.toInt from of
+                    Ok _ ->
+                        from ++ "_" ++ to ++ "_x"
+                    Err _ ->
+                        from ++ "x"
 
             next =
                 ( nextIndex
-                , { id = nextId
-                  , value = Dummy
-                  }
+                , nextId
                 )
 
             ( restNodes, restEdges ) =
@@ -66,15 +64,15 @@ expandOverLayers (( fIndex, from ) as fromNode) (( tIndex, to ) as toNode) =
             ( fromNode :: restNodes, ( from, snd next ) :: restEdges )
 
 
-addVertexToLayer : Node a -> List (Node a) -> List (Node a)
+addVertexToLayer : Node -> List Node -> List Node
 addVertexToLayer node list =
-    if List.isEmpty (List.filter (.id >> (==) node.id) list) then
+    if List.isEmpty (List.filter ((==) node) list) then
         node :: list
     else
         list
 
 
-addLayerVertice : LayerNode a -> List (List (Node a)) -> List (List (Node a))
+addLayerVertice : LayerNode -> List (List Node) -> List (List Node)
 addLayerVertice ( index, node ) layers =
     List.updateAt index
         (addVertexToLayer node)
@@ -82,13 +80,13 @@ addLayerVertice ( index, node ) layers =
         |> Maybe.withDefault layers
 
 
-indexLayer : (a -> comparable) -> Int -> List a -> List ( comparable, Int )
-indexLayer f index layer =
-    List.map (\elem -> ( f elem, index )) layer
+indexLayer : Int -> List Node -> List ( Node, Int )
+indexLayer index layer =
+    List.map (flip (,) index) layer
 
 
-indexLayers : (a -> comparable) -> List (List a) -> Dict comparable Int
-indexLayers f layers =
-    List.indexedMap (indexLayer f) layers
+indexLayers : List (List Node) -> Dict Node Int
+indexLayers layers =
+    List.indexedMap indexLayer layers
         |> List.concat
         |> Dict.fromList

@@ -8,11 +8,10 @@ shiftablePaths input =
     let
         outgoingForId n =
             input.edges
-            |> List.filter (fst >> .id >> (==) n)
-            |> List.map (\(x,y) -> (x.id, y.id))
+            |> List.filter (fst >> (==) n)
 
         idIncomingDict = input.layers
-            |> List.concatMap (List.map .id)
+            |> List.concat
             |> List.map (\x -> (x, outgoingForId x))
             |> List.filter (snd >> List.length >> (>=) 1)
             |> Dict.fromList

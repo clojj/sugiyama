@@ -65,7 +65,7 @@ shiftLeftVariations : LayeredGraph a -> List String -> List (LayeredGraph a)
 shiftLeftVariations input ids =
     let
         firstIds =
-            input.layers |> List.filterMap (List.head >> Maybe.map .id)
+            input.layers |> List.filterMap List.head
 
         allFirst =
             List.all (flip List.member firstIds) ids
@@ -84,7 +84,7 @@ shiftRightVariations : LayeredGraph a -> List String -> List (LayeredGraph a)
 shiftRightVariations input ids =
     let
         lastIds =
-            input.layers |> List.filterMap List.last |> List.map .id
+            input.layers |> List.filterMap List.last
 
         allLast =
             List.all (flip List.member lastIds) ids
@@ -99,7 +99,7 @@ shiftRightVariations input ids =
                 newInput :: shiftRightVariations newInput ids
 
 
-pushIdLeftInLayer : List String -> Layer a -> Layer a
+pushIdLeftInLayer : List String -> Layer-> Layer
 pushIdLeftInLayer ids layer =
     case layer of
         [] ->
@@ -109,13 +109,13 @@ pushIdLeftInLayer ids layer =
             [ x ]
 
         x :: y :: xs ->
-            if List.member y.id ids then
+            if List.member y ids then
                 y :: x :: xs
             else
                 x :: pushIdLeftInLayer ids (y :: xs)
 
 
-pushIdRightInLayer : List String -> Layer a -> Layer a
+pushIdRightInLayer : List String -> Layer -> Layer
 pushIdRightInLayer ids layer =
     case layer of
         [] ->
@@ -125,7 +125,7 @@ pushIdRightInLayer ids layer =
             [ x ]
 
         x :: y :: xs ->
-            if List.member x.id ids then
+            if List.member x ids then
                 y :: x :: xs
             else
                 x :: pushIdRightInLayer ids (y :: xs)

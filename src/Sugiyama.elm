@@ -1,20 +1,16 @@
 module Sugiyama exposing (sugiyama,asGraph,layeredGraph)
 
 import Dict exposing (Dict)
-import List.Extra as List
 import Sugiyama.Crossing.Reduction as Reduction
 import Sugiyama.Domain exposing (..)
 import Sugiyama.Rendering as Rendering
 import Sugiyama.Dummies as Dummies
+import Sugiyama.Utils exposing (isNotDummy)
 import Result
 
-type alias RenderableGraph a =
-    Rendering.RenderableGraph a
 
-
-sugiyama : List a -> List ( a, a ) -> Result String (RenderableGraph a)
+sugiyama : List a -> List (a, a) -> Result String (RenderableGraph a)
 sugiyama vertices edges =
-  -- TODO Check cycles...
     let
       graph = asGraph vertices edges
 
@@ -23,15 +19,9 @@ sugiyama vertices edges =
       layeredValues =
         layered.layers
         |> List.concat
-        |> List.filterMap (\x ->
-           case x.value of
-            Val n -> Just n
-            Dummy -> Nothing
-        )
+        |> List.filter isNotDummy
 
-
-      isAcyclic = List.all (\n -> List.member n layeredValues) vertices
-        -- |> Debug.log "isAcyclic"
+      isAcyclic = List.all (\n -> List.member n layeredValues) (Dict.keys layered.mapping)
     in
       if not isAcyclic then
         Result.Err "Not an acyclic graph"
@@ -42,62 +32,73 @@ sugiyama vertices edges =
           |> Rendering.asRenderedGraph
           |> Result.Ok
 
-
 -- Build Graph
 
 
+
+{-| TODO REWRITE ARGUMENTS
+-}
 asGraph : List a -> List ( a, a ) -> Graph a
-asGraph vertices edges =
+asGraph nodes edges =
     let
-        mappingPairs = vertices |> List.indexedMap (\n x -> (toString n, x))
+        mappingPairs = nodes |> List.indexedMap (\n x -> (toString n, x))
 
         mapping =
             Dict.fromList mappingPairs
 
-        realVerticesIndex =
-            vertexIndex vertices
+        getStringForValue v =
+            mappingPairs
+            |> List.filter (snd >> (==) v)
+            |> List.head
+            |> Maybe.map fst
 
-        realVertices =
-            Dict.values realVerticesIndex
+        -- realVerticesIndex =
+        --     vertexIndex vertices
+
+        realNodes =
+            nodes |> List.filterMap getStringForValue
 
         realEdges =
-            List.filterMap (asRealEdge vertices realVerticesIndex) edges
+            edges
+            |> List.filterMap (\(x,y) ->
+                 Maybe.map2 (,) (getStringForValue x) (getStringForValue y)
+                 )
     in
-        { vertices = realVertices
+        { vertices = realNodes
         , edges = realEdges
         , mapping = mapping
         }
 
+--
+-- vertexIndex : List a -> Dict Int Node
+-- vertexIndex vertices =
+--     vertices
+--         |> List.indexedMap (\i v -> ( i, { id = toString (i + 1), value = Val v } ))
+--         |> Dict.fromList
 
-vertexIndex : List a -> Dict Int (Node a)
-vertexIndex vertices =
-    vertices
-        |> List.indexedMap (\i v -> ( i, { id = toString (i + 1), value = Val v } ))
-        |> Dict.fromList
 
-
-asRealEdge : List a -> Dict Int (Node a) -> ( a, a ) -> Maybe ( Node a, Node a )
-asRealEdge list index ( from, to ) =
-    let
-        indexFrom =
-            List.elemIndex from list
-
-        indexTo =
-            List.elemIndex to list
-
-        nodeFrom =
-            indexFrom `Maybe.andThen` (\x -> Dict.get x index)
-
-        nodeTo =
-            indexTo `Maybe.andThen` (\x -> Dict.get x index)
-    in
-        case ( nodeFrom, nodeTo ) of
-            ( Just f, Just t ) ->
-                Just ( f, t )
-
-            _ ->
-                Nothing
-
+-- asRealEdge : List a -> Dict Int Node -> ( a, a ) -> Maybe ( Node a, Node a )
+-- asRealEdge list index ( from, to ) =
+--     let
+--         indexFrom =
+--             List.elemIndex from list
+--
+--         indexTo =
+--             List.elemIndex to list
+--
+--         nodeFrom =
+--             indexFrom `Maybe.andThen` (\x -> Dict.get x index)
+--
+--         nodeTo =
+--             indexTo `Maybe.andThen` (\x -> Dict.get x index)
+--     in
+--         case ( nodeFrom, nodeTo ) of
+--             ( Just f, Just t ) ->
+--                 Just ( f, t )
+--
+--             _ ->
+--                 Nothing
+--
 
 
 -- Graph to a layered graph
@@ -111,14 +112,17 @@ layeredGraph graph =
 
         layersIndex =
             layers
-                |> List.indexedMap (\index layer -> List.map (\node -> ( node.id, index )) layer)
+                |> List.indexedMap (\index layer -> List.map (\node -> ( node, index )) layer)
                 |> List.concat
                 |> Dict.fromList
     in
-        { layers = List.reverse layers, edges = graph.edges }
+        { layers = List.reverse layers
+        , edges = graph.edges
+        , mapping = graph.mapping
+        }
 
 
-layeredModulesInner : List String -> List (Edge a) -> List (Node a) -> List (List (Node a)) -> List (List (Node a))
+layeredModulesInner : List String -> List Edge -> List Node -> List (List Node) -> List (List Node)
 layeredModulesInner resolved allEdges allModules answer =
     let
         nextGroup' =
@@ -129,18 +133,18 @@ layeredModulesInner resolved allEdges allModules answer =
         else
             let
                 nextGroupIds' =
-                    List.map .id nextGroup'
+                    nextGroup'
 
                 newResolved =
                     nextGroupIds' ++ resolved
 
                 newAllModules =
-                    List.filter (not << flip List.member nextGroupIds' << .id) allModules
+                    List.filter (not << flip List.member nextGroupIds') allModules
             in
                 layeredModulesInner newResolved allEdges newAllModules (nextGroup' :: answer)
 
 
-nextGroup : List String -> List (Edge a) -> List (Node a) -> List (Node a)
+nextGroup : List String -> List Edge -> List Node -> List Node
 nextGroup resolved allEdges restVertices =
     let
         isResolved vertex =
@@ -153,8 +157,7 @@ nextGroup resolved allEdges restVertices =
         List.filter isResolved restVertices
 
 
-allDeps : List (Edge a) -> Node a -> List String
+allDeps : List Edge -> Node -> List String
 allDeps edges vertex =
-    List.filter (\( x, y ) -> y.id == vertex.id) edges
+    List.filter (\( x, y ) -> y == vertex) edges
         |> List.map fst
-        |> List.map .id

@@ -1,9 +1,15 @@
 module DemoGraphs exposing (..)
 
 
-type alias DemoGraph =  ( List Int, List ( Int, Int ) )
+type alias DemoGraph a =  ( List a, List ( a, a ) )
 
-graph1 : DemoGraph
+graph6 : DemoGraph String
+graph6 =
+    ( ["A","B","C"]
+    , [("A","B"),("B","C")]
+    )
+
+graph1 : DemoGraph Int
 graph1 =
     ( [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
     , [ ( 1, 4 )
@@ -25,7 +31,7 @@ graph1 =
     )
 
 
-graph2 : DemoGraph
+graph2 : DemoGraph Int
 graph2 =
     ( [0..47]
     , [ ( 0, 1 )
@@ -92,7 +98,7 @@ graph2 =
       ]
     )
 
-graph3 : DemoGraph
+graph3 : DemoGraph Int
 graph3 =
     let
         (nodes, edges) = graph2
@@ -107,7 +113,7 @@ graph3 =
         , edges |> List.filter (\(x,y) -> List.member x newNodes && List.member y newNodes)
         )
 
-graph4 : DemoGraph
+graph4 : DemoGraph Int
 graph4 =
     let
         nodes = [1,2, 3,4,5, 6,7
@@ -117,7 +123,7 @@ graph4 =
             [ (1,4) , (2,3), (2,5), (3,6), (4,7), (5,6), (5,7) ]
     in (nodes, edges)
 
-graph5 : DemoGraph
+graph5 : DemoGraph Int
 graph5 =
     let nodes = [1..12]
         edges = [(1,2),(1,3)
