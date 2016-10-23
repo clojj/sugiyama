@@ -21,7 +21,7 @@ newCache input =
     in
       Cache { optimalLayers = Dict.empty
           , layerPermutationDict = layerPermutationDict
-          , pathsToHandle = [] --shiftablePaths input
+          , pathsToHandle = shiftablePaths input
       }
 
 cachedPermutations : Cache a -> LayerPermutationDict a

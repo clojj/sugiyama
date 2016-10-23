@@ -5,6 +5,7 @@ import Dict exposing (Dict)
 type alias Graph a =
     { vertices : List (Node a)
     , edges : List (Edge a)
+    , mapping : Dict String a
     }
 
 type alias Layer a = List (Node a)

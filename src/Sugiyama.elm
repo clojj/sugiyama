@@ -17,10 +17,8 @@ sugiyama vertices edges =
   -- TODO Check cycles...
     let
       graph = asGraph vertices edges
-          -- |> Debug.log "Graph"
 
       layered = layeredGraph graph
-          -- |> Debug.log "Layered"
 
       layeredValues =
         layered.layers
@@ -51,6 +49,11 @@ sugiyama vertices edges =
 asGraph : List a -> List ( a, a ) -> Graph a
 asGraph vertices edges =
     let
+        mappingPairs = vertices |> List.indexedMap (\n x -> (toString n, x))
+
+        mapping =
+            Dict.fromList mappingPairs
+
         realVerticesIndex =
             vertexIndex vertices
 
@@ -62,6 +65,7 @@ asGraph vertices edges =
     in
         { vertices = realVertices
         , edges = realEdges
+        , mapping = mapping
         }
 
 
