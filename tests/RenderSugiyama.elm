@@ -10,7 +10,7 @@ import Dict
 
 height : Float
 height =
-    600.0
+    1100.0
 
 
 width : Float
@@ -32,7 +32,7 @@ main : Html.Html a
 main =
     let
         ( nodes, edges ) =
-            DemoGraphs.graph6
+            DemoGraphs.graph2
 
         optimized =
             Sugiyama.sugiyama nodes edges

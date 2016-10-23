@@ -2,18 +2,32 @@ module Sugiyama.Crossing.Computation exposing (..)
 
 import Sugiyama.Domain exposing (Node, Layer, LayeredGraph)
 import Sugiyama.Utils exposing (orderedPairs)
+import Sugiyama.Cache as Cache exposing (Cache)
 import List.Extra as List
 import Dict exposing (Dict)
 
 
-crossingsForLayeredGraph : LayeredGraph a -> Int
-crossingsForLayeredGraph input =
+crossingsForLayeredGraph : (LayeredGraph a, Cache a) -> (Int, Cache a)
+crossingsForLayeredGraph (input, cache) =
     let
-        countForTwoLayers x y =
+        countForTwoLayers (x,y) =
             computeCrossings x y input.edges
+
+        foldCount pair (count, c) =
+            case Cache.hasLayerPairCrossing c pair of
+                Just n ->
+                    (count + n, c)
+                Nothing ->
+                    let
+                        result = countForTwoLayers pair
+
+                        cache' =
+                            Cache.cacheLayerPairCrossings c pair result
+                    in
+                        (count + result, cache')
     in
-        List.map2 countForTwoLayers input.layers (List.drop 1 input.layers)
-            |> List.sum
+        List.map2 (,) input.layers (List.drop 1 input.layers)
+            |> List.foldl foldCount (0, cache)
 
 
 computeCrossingsPairs : Layer -> Layer -> List ( Node, Node ) -> Dict ( String, String ) Int

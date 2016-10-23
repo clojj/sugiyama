@@ -17,21 +17,21 @@ optimizeCrossing (input, cache) =
 optimizeCrossing' : Cache a -> LayeredGraph a -> (LayeredGraph a, Cache a)
 optimizeCrossing' cache input =
     let
-        before =
-            Computation.crossingsForLayeredGraph input
+        (before, cache1) =
+            Computation.crossingsForLayeredGraph (input, cache)
 
-        ( optimized, newCache ) =
-            findBestLayers cache input
+        ( optimized, cache2 ) =
+            findBestLayers cache1 input
 
-        after =
-            Computation.crossingsForLayeredGraph optimized
+        (after, cache3) =
+            Computation.crossingsForLayeredGraph (optimized, cache2)
     in
         if after == 0 then
-            (optimized, newCache)
+            (optimized, cache3)
         else if after < before then
-            optimizeCrossing' newCache optimized
+            optimizeCrossing' cache3 optimized
         else
-            (input, newCache)
+            (input, cache3)
 
 findBestLayers : Cache a -> LayeredGraph a -> ( LayeredGraph a, Cache a )
 findBestLayers cache input =

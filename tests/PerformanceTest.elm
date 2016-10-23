@@ -7,6 +7,7 @@ import DemoGraphs
 import Sugiyama.Crossing.Reduction as Reduction
 import Sugiyama.Crossing.Computation as Computation
 import Sugiyama.Dummies as Dummies
+import Sugiyama.Cache as Cache
 import Expect
 import Sugiyama
 
@@ -20,7 +21,9 @@ main =
                  |> Sugiyama.layeredGraph
                  |> Dummies.addDummyVertices
                  |> Reduction.optimizeCrossing
+                 |> (\l -> (l, Cache.newCache l))
                  |> Computation.crossingsForLayeredGraph
+                 |> fst
                  |> flip Expect.equal 1
 
 
