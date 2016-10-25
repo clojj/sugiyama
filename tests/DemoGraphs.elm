@@ -116,8 +116,7 @@ graph3 =
 graph4 : DemoGraph Int
 graph4 =
     let
-        nodes = [1,2, 3,4,5, 6,7
-            ]
+        nodes = [1,2, 3,4,5, 6,7]
 
         edges =
             [ (1,4) , (2,3), (2,5), (3,6), (4,7), (5,6), (5,7) ]

@@ -19,6 +19,7 @@ newCache : LayeredGraph a -> Cache a
 newCache input =
     let
         layerPermutationDict = layerPermutationsForGraph input
+        -- layerPermutationDict = Dict.empty 
 
 
     in

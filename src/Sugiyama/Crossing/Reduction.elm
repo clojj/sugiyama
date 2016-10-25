@@ -8,6 +8,7 @@ import Sugiyama.Cache as Cache exposing (Cache)
 optimizeCrossing :  LayeredGraph a -> LayeredGraph a
 optimizeCrossing input =
     let
+        _ = Debug.log "Optimize crossings" "!"
         cache =
             Cache.newCache input
     in
