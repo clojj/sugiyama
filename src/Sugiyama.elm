@@ -1,4 +1,4 @@
-module Sugiyama exposing (sugiyama,asGraph,layeredGraph)
+module Sugiyama exposing (sugiyama, asGraph, layeredGraph)
 
 import Dict exposing (Dict)
 import Sugiyama.Crossing.Reduction as Reduction
@@ -9,31 +9,35 @@ import Sugiyama.Utils exposing (isNotDummy)
 import Result
 
 
-sugiyama : List a -> List (a, a) -> Result String (RenderableGraph a)
+sugiyama : List a -> List ( a, a ) -> Result String (RenderableGraph a)
 sugiyama vertices edges =
     let
-      graph = asGraph vertices edges
+        graph =
+            asGraph vertices edges
 
-      layered = layeredGraph graph
+        layered =
+            layeredGraph graph
 
-      layeredValues =
-        layered.layers
-        |> List.concat
-        |> List.filter isNotDummy
+        layeredValues =
+            layered.layers
+                |> List.concat
+                |> List.filter isNotDummy
 
-      isAcyclic = List.all (\n -> List.member n layeredValues) (Dict.keys layered.mapping)
+        isAcyclic =
+            List.all (\n -> List.member n layeredValues) (Dict.keys layered.mapping)
     in
-      if not isAcyclic then
-        Result.Err "Not an acyclic graph"
-      else
-        layered
-          |> Dummies.addDummyVertices
-          |> Reduction.optimizeCrossing
-          |> Rendering.asRenderedGraph
-          |> Result.Ok
+        if not isAcyclic then
+            Result.Err "Not an acyclic graph"
+        else
+            layered
+                |> Dummies.addDummyVertices
+                |> Reduction.optimizeCrossing
+                |> Rendering.asRenderedGraph
+                |> Result.Ok
+
+
 
 -- Build Graph
-
 
 
 {-| TODO REWRITE ARGUMENTS
@@ -41,33 +45,36 @@ sugiyama vertices edges =
 asGraph : List a -> List ( a, a ) -> Graph a
 asGraph nodes edges =
     let
-        mappingPairs = nodes |> List.indexedMap (\n x -> (toString n, x))
+        mappingPairs =
+            nodes |> List.indexedMap (\n x -> ( toString n, x ))
 
         mapping =
             Dict.fromList mappingPairs
 
         getStringForValue v =
             mappingPairs
-            |> List.filter (snd >> (==) v)
-            |> List.head
-            |> Maybe.map fst
+                |> List.filter (Tuple.second >> (==) v)
+                |> List.head
+                |> Maybe.map Tuple.first
 
         -- realVerticesIndex =
         --     vertexIndex vertices
-
         realNodes =
             nodes |> List.filterMap getStringForValue
 
         realEdges =
             edges
-            |> List.filterMap (\(x,y) ->
-                 Maybe.map2 (,) (getStringForValue x) (getStringForValue y)
-                 )
+                |> List.filterMap
+                    (\( x, y ) ->
+                        Maybe.map2 (,) (getStringForValue x) (getStringForValue y)
+                    )
     in
         { vertices = realNodes
         , edges = realEdges
         , mapping = mapping
         }
+
+
 
 --
 -- vertexIndex : List a -> Dict Int Node
@@ -75,8 +82,6 @@ asGraph nodes edges =
 --     vertices
 --         |> List.indexedMap (\i v -> ( i, { id = toString (i + 1), value = Val v } ))
 --         |> Dict.fromList
-
-
 -- asRealEdge : List a -> Dict Int Node -> ( a, a ) -> Maybe ( Node a, Node a )
 -- asRealEdge list index ( from, to ) =
 --     let
@@ -99,8 +104,6 @@ asGraph nodes edges =
 --             _ ->
 --                 Nothing
 --
-
-
 -- Graph to a layered graph
 
 
@@ -125,23 +128,23 @@ layeredGraph graph =
 layeredModulesInner : List String -> List Edge -> List Node -> List (List Node) -> List (List Node)
 layeredModulesInner resolved allEdges allModules answer =
     let
-        nextGroup' =
+        nextGroup_ =
             nextGroup resolved allEdges allModules
     in
-        if List.isEmpty nextGroup' then
+        if List.isEmpty nextGroup_ then
             answer
         else
             let
-                nextGroupIds' =
-                    nextGroup'
+                nextGroupIds_ =
+                    nextGroup_
 
                 newResolved =
-                    nextGroupIds' ++ resolved
+                    nextGroupIds_ ++ resolved
 
                 newAllModules =
-                    List.filter (not << flip List.member nextGroupIds') allModules
+                    List.filter (not << flip List.member nextGroupIds_) allModules
             in
-                layeredModulesInner newResolved allEdges newAllModules (nextGroup' :: answer)
+                layeredModulesInner newResolved allEdges newAllModules (nextGroup_ :: answer)
 
 
 nextGroup : List String -> List Edge -> List Node -> List Node
@@ -160,4 +163,4 @@ nextGroup resolved allEdges restVertices =
 allDeps : List Edge -> Node -> List String
 allDeps edges vertex =
     List.filter (\( x, y ) -> y == vertex) edges
-        |> List.map fst
+        |> List.map Tuple.first

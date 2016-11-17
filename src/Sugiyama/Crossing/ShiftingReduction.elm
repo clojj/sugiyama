@@ -9,8 +9,8 @@ import List.Extra as List
 optimizeCrossing : ( LayeredGraph a, Cache a ) -> ( LayeredGraph a, Cache a )
 optimizeCrossing ( input, cache ) =
     let
-        (currentCrossings, cache1) =
-            Computation.crossingsForLayeredGraph (input, cache)
+        ( currentCrossings, cache1 ) =
+            Computation.crossingsForLayeredGraph ( input, cache )
     in
         if currentCrossings == 0 then
             ( input, cache )
@@ -20,47 +20,48 @@ optimizeCrossing ( input, cache ) =
                     List.map (variationsForPath input)
                         (Cache.pathsToHandle cache1)
 
-                (cache2, result ) = improvementForPathVariationList cache1 currentCrossings pathVariationList
+                ( cache2, result ) =
+                    improvementForPathVariationList cache1 currentCrossings pathVariationList
             in
                 ( Maybe.withDefault input result
                 , cache2
                 )
 
 
-
-improvementForPathVariationList : Cache a -> Int -> List (List (LayeredGraph a)) -> (Cache a, Maybe (LayeredGraph a))
+improvementForPathVariationList : Cache a -> Int -> List (List (LayeredGraph a)) -> ( Cache a, Maybe (LayeredGraph a) )
 improvementForPathVariationList cache n graphsList =
     case graphsList of
         [] ->
-            (cache, Nothing)
+            ( cache, Nothing )
 
         graphList :: xs ->
             let
-                (cache', result) = improvementForPathVariations cache n graphList
+                ( cache_, result ) =
+                    improvementForPathVariations cache n graphList
             in
-              case result of
-                Just n ->
-                    (cache', Just n)
+                case result of
+                    Just n ->
+                        ( cache_, Just n )
 
-                Nothing ->
-                    improvementForPathVariationList cache' n xs
+                    Nothing ->
+                        improvementForPathVariationList cache_ n xs
 
 
-improvementForPathVariations : Cache a -> Int -> List (LayeredGraph a) -> (Cache a,  Maybe (LayeredGraph a))
+improvementForPathVariations : Cache a -> Int -> List (LayeredGraph a) -> ( Cache a, Maybe (LayeredGraph a) )
 improvementForPathVariations cache n graphs =
     case graphs of
         [] ->
-            (cache, Nothing)
+            ( cache, Nothing )
 
         graph :: xs ->
             let
-                (count, cache') = Computation.crossingsForLayeredGraph (graph, cache)
+                ( count, cache_ ) =
+                    Computation.crossingsForLayeredGraph ( graph, cache )
             in
-                if  count  < n then
-                    (cache', Just graph)
+                if count < n then
+                    ( cache_, Just graph )
                 else
-                    improvementForPathVariations cache' n xs
-
+                    improvementForPathVariations cache_ n xs
 
 
 variationsForPath : LayeredGraph a -> List String -> List (LayeredGraph a)
@@ -108,7 +109,7 @@ shiftRightVariations input ids =
                 newInput :: shiftRightVariations newInput ids
 
 
-pushIdLeftInLayer : List String -> Layer-> Layer
+pushIdLeftInLayer : List String -> Layer -> Layer
 pushIdLeftInLayer ids layer =
     case layer of
         [] ->

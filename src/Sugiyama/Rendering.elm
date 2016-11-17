@@ -2,7 +2,6 @@ module Sugiyama.Rendering exposing (..)
 
 import Sugiyama.Domain exposing (..)
 import Sugiyama.Utils exposing (isDummy)
-
 import List
 import List.Extra as List
 import Dict exposing (Dict)
@@ -51,14 +50,14 @@ asRenderedGraph input =
                 |> List.concatMap (\renderGroup -> List.indexedMap (\index node -> ( node, positionForIndex renderGroup index )) renderGroup.items)
                 |> List.foldl (\( node, offset ) -> Dict.insert node ( node, offset )) nodePositions
                 |> Dict.toList
-                |> List.map snd
+                |> List.map Tuple.second
                 |> List.map (\( node, x ) -> ( node, x, nodeIdToY node ))
 
         nodes =
             positions
                 |> List.map
                     (\( node, x, y ) ->
-                                { key = node, x = x, y = y }
+                        { key = node, x = x, y = y }
                     )
 
         normalEdges =
@@ -80,7 +79,7 @@ asRenderedGraph input =
         , height = height
         , vertices = nodes
         , edges = edges
-        , mapping =  input.mapping
+        , mapping = input.mapping
         }
 
 
@@ -111,20 +110,20 @@ handleDummyGroup dummyGroup ( answer, renderGroups ) =
             (rightV + leftV)
                 / 2.0
 
-        answer' =
+        answer_ =
             List.foldl (\node -> Dict.insert node ( node, splitAt )) answer dummyGroup
 
         fixedRenderGroups =
             fixRenderGroups dummyGroup splitAt renderGroups linked
     in
-        ( answer', fixedRenderGroups )
+        ( answer_, fixedRenderGroups )
 
 
 fixRenderGroups : List Node -> Float -> List RenderGroup -> List ( Node, RenderGroup ) -> List RenderGroup
 fixRenderGroups nodes splitAt renderGroups linked =
     let
         targetRenderGroups =
-            List.map snd linked
+            List.map Tuple.second linked
 
         untouchedGroups =
             List.filter (flip List.member targetRenderGroups >> not) renderGroups
@@ -135,7 +134,7 @@ fixRenderGroups nodes splitAt renderGroups linked =
         untouchedGroups ++ newTargetRenderGroups
 
 
-fixRenderGroup : Float -> ( Node , RenderGroup ) -> List RenderGroup
+fixRenderGroup : Float -> ( Node, RenderGroup ) -> List RenderGroup
 fixRenderGroup splitAt ( node, renderGroup ) =
     case List.elemIndex node renderGroup.items of
         Just index ->
@@ -155,7 +154,7 @@ fixRenderGroup splitAt ( node, renderGroup ) =
                 [ renderGroup ]
 
 
-linkNodesToRenderGroups : List Node -> List RenderGroup -> List ( Node , RenderGroup )
+linkNodesToRenderGroups : List Node -> List RenderGroup -> List ( Node, RenderGroup )
 linkNodesToRenderGroups nodes renderGroups =
     List.filterMap
         (\x ->
@@ -166,7 +165,7 @@ linkNodesToRenderGroups nodes renderGroups =
         nodes
 
 
-getRightOffsetData : List RenderGroup -> List Node -> List ( Node , RenderGroup ) -> ( Float, Int )
+getRightOffsetData : List RenderGroup -> List Node -> List ( Node, RenderGroup ) -> ( Float, Int )
 getRightOffsetData renderGroups dummies linked =
     let
         positions =
@@ -179,14 +178,14 @@ getRightOffsetData renderGroups dummies linked =
 
         maxLeft =
             positions
-                |> List.map fst
+                |> List.map Tuple.first
                 |> List.maximum
                 |> Maybe.withDefault 0
 
         minOffset =
             positions
-                |> List.filter (fst >> (==) maxLeft)
-                |> List.map snd
+                |> List.filter (Tuple.first >> (==) maxLeft)
+                |> List.map Tuple.second
                 |> List.sort
                 |> List.last
                 |> Maybe.withDefault 0
@@ -194,7 +193,7 @@ getRightOffsetData renderGroups dummies linked =
         ( minOffset, maxLeft )
 
 
-getLeftOffsetData : List RenderGroup -> List Node -> List ( Node , RenderGroup ) -> ( Float, Int )
+getLeftOffsetData : List RenderGroup -> List Node -> List ( Node, RenderGroup ) -> ( Float, Int )
 getLeftOffsetData renderGroups dummies linked =
     let
         positions =
@@ -207,14 +206,14 @@ getLeftOffsetData renderGroups dummies linked =
 
         maxLeft =
             positions
-                |> List.map fst
+                |> List.map Tuple.first
                 |> List.maximum
                 |> Maybe.withDefault 0
 
         minOffset =
             positions
-                |> List.filter (fst >> (==) maxLeft)
-                |> List.map snd
+                |> List.filter (Tuple.first >> (==) maxLeft)
+                |> List.map Tuple.second
                 |> List.sort
                 |> List.head
                 |> Maybe.withDefault 0

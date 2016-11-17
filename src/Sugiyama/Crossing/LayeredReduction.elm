@@ -9,34 +9,37 @@ import Sugiyama.Crossing.Computation as Computation
 import Dict exposing (Dict)
 
 
-optimizeCrossing : (LayeredGraph a, Cache a) -> (LayeredGraph a, Cache a)
-optimizeCrossing (input, cache) =
-    optimizeCrossing' cache input
+optimizeCrossing : ( LayeredGraph a, Cache a ) -> ( LayeredGraph a, Cache a )
+optimizeCrossing ( input, cache ) =
+    optimizeCrossing_ cache input
 
 
-optimizeCrossing' : Cache a -> LayeredGraph a -> (LayeredGraph a, Cache a)
-optimizeCrossing' cache input =
+optimizeCrossing_ : Cache a -> LayeredGraph a -> ( LayeredGraph a, Cache a )
+optimizeCrossing_ cache input =
     let
-        (before, cache1) =
-            Computation.crossingsForLayeredGraph (input, cache)
+        ( before, cache1 ) =
+            Computation.crossingsForLayeredGraph ( input, cache )
 
         ( optimized, cache2 ) =
             findBestLayers cache1 input
 
-        (after, cache3) =
-            Computation.crossingsForLayeredGraph (optimized, cache2)
+        ( after, cache3 ) =
+            Computation.crossingsForLayeredGraph ( optimized, cache2 )
     in
         if after == 0 then
-            (optimized, cache3)
+            ( optimized, cache3 )
         else if after < before then
-            optimizeCrossing' cache3 optimized
+            optimizeCrossing_ cache3 optimized
         else
-            (input, cache3)
+            ( input, cache3 )
+
 
 findBestLayers : Cache a -> LayeredGraph a -> ( LayeredGraph a, Cache a )
 findBestLayers cache input =
     let
-        _ = Debug.log "Find best layers" "!"
+        _ =
+            Debug.log "Find best layers" "!"
+
         edges =
             input.edges
 
@@ -55,7 +58,7 @@ findBestLayers cache input =
             List.foldr (handleLayer invertedEdges) ( [], newCache ) resultLayersToLeft
 
         newLayers =
-            resultLayersToRight |> List.map snd |> List.reverse
+            resultLayersToRight |> List.map Tuple.second |> List.reverse
     in
         ( { input | layers = newLayers }, newCache_ )
 
@@ -75,30 +78,30 @@ handleLayer edges ( layerId, next ) ( result, cache ) =
 
                 Nothing ->
                     let
-                        (computedLayer, cache') =
+                        ( computedLayer, cache_ ) =
                             reduceTo cache ( last, ( layerId, next ), edges )
 
                         newCache =
-                            C.addToCache last next computedLayer cache'
+                            C.addToCache last next computedLayer cache_
                     in
                         ( result ++ [ ( layerId, computedLayer ) ]
                         , newCache
                         )
 
 
-reduceTo : Cache a -> ( Layer, ( Int, Layer ), List ( Node, Node ) ) -> (Layer, Cache a)
+reduceTo : Cache a -> ( Layer, ( Int, Layer ), List ( Node, Node ) ) -> ( Layer, Cache a )
 reduceTo cache ( aNodes, ( layerId, bNodes ), edges ) =
     if Computation.computeCrossings aNodes bNodes edges == 0 then
-        (bNodes, cache)
+        ( bNodes, cache )
     else
         cache
             |> C.cachedPermutations
             |> Dict.get layerId
             |> Maybe.map (\permutation -> findOptimalPermutation cache permutation aNodes bNodes edges)
-            |> Maybe.withDefault (bNodes, cache)
+            |> Maybe.withDefault ( bNodes, cache )
 
 
-findOptimalPermutation : Cache a -> LayerPermutation -> Layer -> Layer -> List ( Node, Node ) -> (Layer, Cache a)
+findOptimalPermutation : Cache a -> LayerPermutation -> Layer -> Layer -> List ( Node, Node ) -> ( Layer, Cache a )
 findOptimalPermutation cache permutations aNodes bNodes edges =
     let
         bNodePairCrossings =
@@ -111,7 +114,7 @@ findOptimalPermutation cache permutations aNodes bNodes edges =
     in
         permutations
             |> List.map (\x -> ( x |> orderedPairs |> crossingsForPairs, x ))
-            |> List.sortBy fst
+            |> List.sortBy Tuple.first
             |> List.head
-            |> Maybe.map (snd >> flip (,) cache)
-            |> Maybe.withDefault (bNodes, cache)
+            |> Maybe.map (Tuple.second >> flip (,) cache)
+            |> Maybe.withDefault ( bNodes, cache )

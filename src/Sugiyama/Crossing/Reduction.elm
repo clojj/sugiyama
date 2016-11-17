@@ -5,25 +5,28 @@ import Sugiyama.Crossing.LayeredReduction as LayeredReduction
 import Sugiyama.Crossing.ShiftingReduction as ShiftingReduction
 import Sugiyama.Cache as Cache exposing (Cache)
 
-optimizeCrossing :  LayeredGraph a -> LayeredGraph a
+
+optimizeCrossing : LayeredGraph a -> LayeredGraph a
 optimizeCrossing input =
     let
-        _ = Debug.log "Optimize crossings" "!"
+        _ =
+            Debug.log "Optimize crossings" "!"
+
         cache =
             Cache.newCache input
     in
-        optimizeCrossing' (input, cache ) |> fst
+        optimizeCrossing_ ( input, cache ) |> Tuple.first
 
-optimizeCrossing' : (LayeredGraph a, Cache a) -> (LayeredGraph a, Cache a)
-optimizeCrossing' input =
+
+optimizeCrossing_ : ( LayeredGraph a, Cache a ) -> ( LayeredGraph a, Cache a )
+optimizeCrossing_ input =
     let
         result =
             input
-            |> LayeredReduction.optimizeCrossing
-            |> ShiftingReduction.optimizeCrossing
-
+                |> LayeredReduction.optimizeCrossing
+                |> ShiftingReduction.optimizeCrossing
     in
-        if fst result == fst input then
+        if Tuple.first result == Tuple.first input then
             result
         else
-            optimizeCrossing' result
+            optimizeCrossing_ result

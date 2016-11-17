@@ -6,11 +6,12 @@ import List.Extra as List
 import Sugiyama.ShiftablePaths exposing (shiftablePaths)
 import String
 
+
 type Cache a
     = Cache
         { optimalLayers : Dict String Layer
         , layerPermutationDict : LayerPermutationDict
-        ,pathsToHandle : List (List String)
+        , pathsToHandle : List (List String)
         , layerPairCrossings : Dict String Int
         }
 
@@ -18,41 +19,46 @@ type Cache a
 newCache : LayeredGraph a -> Cache a
 newCache input =
     let
-        layerPermutationDict = layerPermutationsForGraph input
-        -- layerPermutationDict = Dict.empty 
+        layerPermutationDict =
+            layerPermutationsForGraph input
 
-
+        -- layerPermutationDict = Dict.empty
     in
-      Cache { optimalLayers = Dict.empty
-          , layerPermutationDict = layerPermutationDict
-          , pathsToHandle = shiftablePaths input
-          , layerPairCrossings = Dict.empty
-      }
+        Cache
+            { optimalLayers = Dict.empty
+            , layerPermutationDict = layerPermutationDict
+            , pathsToHandle = shiftablePaths input
+            , layerPairCrossings = Dict.empty
+            }
 
-hasLayerPairCrossing : Cache a -> (Layer, Layer) -> Maybe Int
-hasLayerPairCrossing (Cache c) (x,y) =
+
+hasLayerPairCrossing : Cache a -> ( Layer, Layer ) -> Maybe Int
+hasLayerPairCrossing (Cache c) ( x, y ) =
     let
-        key = List.append x y |> String.join "|"
-
+        key =
+            List.append x y |> String.join "|"
     in
         Dict.get key c.layerPairCrossings
 
-cacheLayerPairCrossings : Cache a -> (Layer, Layer) -> Int ->  Cache a
-cacheLayerPairCrossings (Cache c) (x,y) n =
+
+cacheLayerPairCrossings : Cache a -> ( Layer, Layer ) -> Int -> Cache a
+cacheLayerPairCrossings (Cache c) ( x, y ) n =
     let
-        key = List.append x y |> String.join "|"
+        key =
+            List.append x y |> String.join "|"
     in
-        Cache { c | layerPairCrossings = Dict.insert key n c.layerPairCrossings}
+        Cache { c | layerPairCrossings = Dict.insert key n c.layerPairCrossings }
 
 
 cachedPermutations : Cache a -> LayerPermutationDict
 cachedPermutations (Cache x) =
-
     x.layerPermutationDict
+
 
 pathsToHandle : Cache a -> List (List String)
 pathsToHandle (Cache x) =
     x.pathsToHandle
+
 
 layerPermutationsForGraph : LayeredGraph a -> LayerPermutationDict
 layerPermutationsForGraph input =

@@ -8,6 +8,7 @@ import String
 import DemoGraphs
 import Dict
 
+
 height : Float
 height =
     1100.0
@@ -45,13 +46,15 @@ main =
                 let
                     circles =
                         result.vertices
-                            |> List.filterMap (\n ->
-                                case Dict.get n.key result.mapping of
-                                    Just v ->
-                                        Just <| asCircle (n.x) n.y v
-                                    Nothing ->
-                                        Nothing
-                            )
+                            |> List.filterMap
+                                (\n ->
+                                    case Dict.get n.key result.mapping of
+                                        Just v ->
+                                            Just <| asCircle (n.x) n.y v
+
+                                        Nothing ->
+                                            Nothing
+                                )
                             |> List.concat
 
                     lines =
@@ -176,7 +179,7 @@ asCircle x y n =
         , r (toString radius)
         ]
         []
-    , Svg.text'
+    , Svg.text_
         [ Svg.Attributes.x <| toString (asX x)
         , Svg.Attributes.y <| toString (asY y)
         , Svg.Attributes.fill "white"

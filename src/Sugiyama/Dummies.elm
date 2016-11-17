@@ -5,6 +5,7 @@ import List.Extra as List
 import Dict exposing (Dict)
 import String
 
+
 addDummyVertices : LayeredGraph a -> LayeredGraph a
 addDummyVertices input =
     let
@@ -15,10 +16,10 @@ addDummyVertices input =
             List.map (handleEdge indexedLayers) input.edges
 
         newLayerVertices =
-            List.concatMap fst expandedEdges
+            List.concatMap Tuple.first expandedEdges
 
         newEdges =
-            List.concatMap snd expandedEdges
+            List.concatMap Tuple.second expandedEdges
 
         newLayers =
             List.foldl addLayerVertice input.layers newLayerVertices
@@ -50,6 +51,7 @@ expandOverLayers (( fIndex, from ) as fromNode) (( tIndex, to ) as toNode) =
                 case String.toInt from of
                     Ok _ ->
                         from ++ "_" ++ to ++ "_x"
+
                     Err _ ->
                         from ++ "x"
 
@@ -61,7 +63,7 @@ expandOverLayers (( fIndex, from ) as fromNode) (( tIndex, to ) as toNode) =
             ( restNodes, restEdges ) =
                 expandOverLayers next toNode
         in
-            ( fromNode :: restNodes, ( from, snd next ) :: restEdges )
+            ( fromNode :: restNodes, ( from, Tuple.second next ) :: restEdges )
 
 
 addVertexToLayer : Node -> List Node -> List Node

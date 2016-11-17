@@ -1,13 +1,16 @@
 module DemoGraphs exposing (..)
 
 
-type alias DemoGraph a =  ( List a, List ( a, a ) )
+type alias DemoGraph a =
+    ( List a, List ( a, a ) )
+
 
 graph6 : DemoGraph String
 graph6 =
-    ( ["A","B","C"]
-    , [("A","B"),("B","C")]
+    ( [ "A", "B", "C" ]
+    , [ ( "A", "B" ), ( "B", "C" ) ]
     )
+
 
 graph1 : DemoGraph Int
 graph1 =
@@ -33,7 +36,7 @@ graph1 =
 
 graph2 : DemoGraph Int
 graph2 =
-    ( [0..47]
+    ( List.range 0 47
     , [ ( 0, 1 )
       , ( 0, 4 )
       , ( 0, 5 )
@@ -98,38 +101,60 @@ graph2 =
       ]
     )
 
+
 graph3 : DemoGraph Int
 graph3 =
     let
-        (nodes, edges) = graph2
-        newNodes =  nodes
-        |> List.filter ((<=) 17)
-        |> List.filter ((>=) 35)
-        |> List.filter ((/=) 18)
-        |> List.filter ((/=) 19)
-        |> List.filter ((/=) 20)
+        ( nodes, edges ) =
+            graph2
+
+        newNodes =
+            nodes
+                |> List.filter ((<=) 17)
+                |> List.filter ((>=) 35)
+                |> List.filter ((/=) 18)
+                |> List.filter ((/=) 19)
+                |> List.filter ((/=) 20)
     in
         ( newNodes
-        , edges |> List.filter (\(x,y) -> List.member x newNodes && List.member y newNodes)
+        , edges |> List.filter (\( x, y ) -> List.member x newNodes && List.member y newNodes)
         )
+
 
 graph4 : DemoGraph Int
 graph4 =
     let
-        nodes = [1,2, 3,4,5, 6,7]
+        nodes =
+            [ 1, 2, 3, 4, 5, 6, 7 ]
 
         edges =
-            [ (1,4) , (2,3), (2,5), (3,6), (4,7), (5,6), (5,7) ]
-    in (nodes, edges)
+            [ ( 1, 4 ), ( 2, 3 ), ( 2, 5 ), ( 3, 6 ), ( 4, 7 ), ( 5, 6 ), ( 5, 7 ) ]
+    in
+        ( nodes, edges )
+
 
 graph5 : DemoGraph Int
 graph5 =
-    let nodes = [1..12]
-        edges = [(1,2),(1,3)
-                ,(2,4),(2,5),(2,8),(3,6),(3,7)
-                ,(4,12),(5,12),(6,11),(7,9),(8,10)
-                ,(9,11),(10,11)
-                ,(11,12)
-                ]
+    let
+        nodes =
+            List.range 1 12
+
+        edges =
+            [ ( 1, 2 )
+            , ( 1, 3 )
+            , ( 2, 4 )
+            , ( 2, 5 )
+            , ( 2, 8 )
+            , ( 3, 6 )
+            , ( 3, 7 )
+            , ( 4, 12 )
+            , ( 5, 12 )
+            , ( 6, 11 )
+            , ( 7, 9 )
+            , ( 8, 10 )
+            , ( 9, 11 )
+            , ( 10, 11 )
+            , ( 11, 12 )
+            ]
     in
-        (nodes, edges)
+        ( nodes, edges )
